@@ -1,25 +1,25 @@
+import os  # Import os to read environment variables
 from telethon import TelegramClient, events
 
-# API credentials from https://my.telegram.org/apps
-api_id = "21116104"
-api_hash = "2bc11795b938f35609c1e330628f43c2"
+# Read API credentials from Render's environment variables
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
 
-# Set source and destination chats
-source_chat = "https://t.me/ForwardFile1_bot"
-destination_channel = "https://t.me/AniHeaven123"
+# Source and destination chats from environment variables
+source_chat = os.getenv("SOURCE_CHAT")
+destination_channel = os.getenv("DESTINATION_CHAT")
 
 # Initialize the Telegram client
 client = TelegramClient("bot_session", api_id, api_hash)
 
 @client.on(events.NewMessage(chats=source_chat))
 async def forward_messages(event):
+    """ Listens for new messages in the source chat and sends them to the destination channel without forward tags. """
     if event.message.media:
-        # Resend media without forward tag
         await client.send_file(destination_channel, event.message.media, caption=event.message.text)
     else:
-        # Send text messages without forward tag
         await client.send_message(destination_channel, event.message.text)
 
-print("Bot is running...")
+print("🤖 Bot is running on Render...")
 client.start()
 client.run_until_disconnected()
