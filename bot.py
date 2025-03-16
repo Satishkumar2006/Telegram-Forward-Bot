@@ -1,12 +1,14 @@
 import os
 from telethon import TelegramClient, events
 
-bot_token = os.getenv("BOT_TOKEN")  # Read bot token from Render's environment variables
-
-client = TelegramClient("bot_session", api_id=0, api_hash="").start(bot_token=bot_token)
+api_id = int(os.getenv("API_ID"))  # Get from Render environment variables
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")  # Get from BotFather
 
 source_chat = int(os.getenv("SOURCE_CHAT"))  # Source chat ID
 destination_channel = int(os.getenv("DESTINATION_CHAT"))  # Destination chat ID
+
+client = TelegramClient("bot_session", api_id, api_hash).start(bot_token=bot_token)
 
 @client.on(events.NewMessage(chats=source_chat))
 async def forward_messages(event):
