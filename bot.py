@@ -19,15 +19,16 @@ def extract_number(text):
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
-    if event.file:  # Check if it's a file
-        file_caption = getattr(event.message, "message", None) or event.file.name or "Unknown"
-        episode_num = extract_number(file_caption)
+    if event.message.document:  # Check if message contains a file
+        file_caption = getattr(event.message, "message", None) or "Unknown"
+        file_name = event.message.document.attributes[0].file_name if event.message.document.attributes else "Unknown"
+        
+        ordered_caption = f"{file_caption} | {file_name}"
+        
+        # Forward to destination channel with ordered caption
+        await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
+        print(f"✅ Forwarded: {ordered_caption}")
 
-        if episode_num != float('inf'):  # Only store if a number is found
-            files_dict[episode_num] = event.message
-            await event.reply(f"📂 Saved: {file_caption} (Episode {episode_num})")
-        else:
-            await event.reply("❌ Could not detect an episode number.")
 
 
 @client.on(events.NewMessage(pattern="/getall"))
