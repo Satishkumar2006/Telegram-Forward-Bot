@@ -20,21 +20,24 @@ def extract_number(text):
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
-    if event.message.document:  # Ensure the message contains a document (file)
-        file_caption = getattr(event.message, "message", None) or "Unknown"
+    file_caption = event.message.caption  # Get caption if it exists
+    file_name = None
 
-        # Get the file name safely
-        file_name = "Unknown"
+    if event.message.document and hasattr(event.message.document, "attributes"):
         for attr in event.message.document.attributes:
-            if hasattr(attr, "file_name"):  # Only pick attributes that have file_name
+            if hasattr(attr, "file_name"):  # Check if attribute has file_name
                 file_name = attr.file_name
-                break  # Stop when we find the file name
+                break
 
-        ordered_caption = f"{file_caption} | {file_name}"
+    # Choose only one source for caption
+    ordered_caption = file_caption if file_caption else file_name
 
-        # Forward to destination channel with ordered caption
-        await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
-        print(f"✅ Forwarded: {ordered_caption}")
+    if not ordered_caption:
+        ordered_caption = "Unknown File"
+
+    # Send file with corrected caption
+    await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
+
 
 
 
