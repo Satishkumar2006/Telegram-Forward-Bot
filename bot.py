@@ -18,9 +18,10 @@ def extract_number(text):
     return int(match.group()) if match else float('inf')  # Return number or inf if not found
 
 @client.on(events.NewMessage(incoming=True))
+@client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
     if event.file:  # Check if it's a file
-        file_caption = event.message.caption or event.file.name or "Unknown"
+        file_caption = getattr(event.message, "message", None) or event.file.name or "Unknown"
         episode_num = extract_number(file_caption)
 
         if episode_num != float('inf'):  # Only store if a number is found
