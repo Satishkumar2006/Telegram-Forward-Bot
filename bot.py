@@ -20,7 +20,7 @@ def extract_number(text):
     return int(match.group()) if match else float('inf')  # Return number or inf if not found
 
 @client.on(events.NewMessage(incoming=True))
-@client.on(events.NewMessage(incoming=True))
+
 async def handle_files(event):
     if event.message.document:  # Ensure the message contains a document (file)
         file_caption = getattr(event.message, "message", None) or "Unknown"
