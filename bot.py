@@ -20,7 +20,7 @@ def extract_number(text):
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
     if event.file:  # Check if it's a file
-        file_caption = event.message.caption or event.file.name or "Unknown"
+        file_caption = getattr(event.message, "message", None) or event.file.name or "Unknown"
         episode_num = extract_number(file_caption)
 
         if episode_num != float('inf'):  # Only store if a number is found
@@ -28,6 +28,7 @@ async def handle_files(event):
             await event.reply(f"📂 Saved: {file_caption} (Episode {episode_num})")
         else:
             await event.reply("❌ Could not detect an episode number.")
+
 
 @client.on(events.NewMessage(pattern="/getall"))
 async def send_files(event):
