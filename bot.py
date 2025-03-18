@@ -35,7 +35,7 @@ async def handle_files(event):
         ordered_caption = f"{file_caption} | {file_name}"
 
         # Forward to destination channel with ordered caption
-        await client.send_file(DESTINATION_CHAT, event.message.document)
+        await client.send_file(DESTINATION_CHAT, event.message.document,file_caption)
         print(f"✅ Forwarded: {ordered_caption}")
 
 
