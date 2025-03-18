@@ -10,8 +10,8 @@ DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))  # Get from environment va
 
 client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# Dictionary to store files {episode_number: message}
-files_dict = {}
+# List to store files as tuples [(episode_number, message)]
+files_list = []
 
 def extract_number(text):
     """Extracts episode number from caption or filename."""
@@ -32,9 +32,11 @@ async def handle_files(event):
 
         ordered_caption = f"{file_caption} | {file_name}"
 
-        # Extract episode number and store the file
-        episode_number = extract_number(file_name)  # Extract episode number
-        files_dict[episode_number] = event.message  # Store message in dictionary
+        # Extract episode number
+        episode_number = extract_number(file_name)
+
+        # Store the file message with its episode number
+        files_list.append((episode_number, event.message))
 
         # Forward to destination channel with ordered caption
         await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
@@ -42,15 +44,16 @@ async def handle_files(event):
 
 @client.on(events.NewMessage(pattern="/getall"))
 async def send_files(event):
-    if not files_dict:
+    if not files_list:
         await event.reply("❌ No files stored.")
         return
 
-    sorted_files = sorted(files_dict.keys())  # Sort by episode number
+    # Sort files by episode number
+    sorted_files = sorted(files_list, key=lambda x: x[0])
 
-    await event.reply("📤 Sending files in order:")
-    for episode_num in sorted_files:
-        await client.forward_messages(event.chat_id, files_dict[episode_num])  # Forward stored messages
+    await event.reply("📤 Sending files in ascending order:")
+    for episode_num, message in sorted_files:
+        await client.forward_messages(event.chat_id, message)  # Forward stored messages
 
 print("🤖 Bot is running...")
 client.run_until_disconnected()
