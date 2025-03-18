@@ -53,7 +53,7 @@ async def process_queue():
             for episode_num, message, caption in sorted_files:
                 await client.send_file(DESTINATION_CHAT, message.document, caption=caption)
                 print(f"✅ Sent: {caption}")
-                await asyncio.sleep(3)  # ✅ Delay between sending files
+                await asyncio.sleep(1)  # ✅ Delay between sending files
 
         await asyncio.sleep(1)  # ✅ Prevents high CPU usage
 
