@@ -17,13 +17,10 @@ def extract_episode_number(text):
     """
     Extracts episode number from filenames like:
     'Kingdom - S01E12 - The Ultimate Sword-Blow [MCR] [75CA4A20].mkv'
+    Only extracts '12' from 'S01E12'.
     """
     match = re.search(r'S\d+E(\d+)', text)  # Find 'S01E12' and extract '12'
-    if match:
-        episode_num = int(match.group(1))
-        print(f"Extracted episode number: {episode_num} from {text}")  # Debug print
-        return episode_num
-    return float('inf')  # Return a high value if not found (so it doesn't mess sorting)
+    return int(match.group(1)) if match else float('inf')  # Default to a high number if not found
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
