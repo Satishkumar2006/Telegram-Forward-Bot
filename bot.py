@@ -19,7 +19,11 @@ def extract_episode_number(text):
     'Kingdom - S01E12 - The Ultimate Sword-Blow [MCR] [75CA4A20].mkv'
     """
     match = re.search(r'S\d+E(\d+)', text)  # Find 'S01E12' and extract '12'
-    return int(match.group(1)) if match else float('inf')  # Convert to int or return infinity if not found
+    if match:
+        episode_num = int(match.group(1))
+        print(f"Extracted episode number: {episode_num} from {text}")  # Debug print
+        return episode_num
+    return float('inf')  # Return a high value if not found (so it doesn't mess sorting)
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
@@ -53,6 +57,8 @@ async def send_files(event):
 
     # ✅ Ensure correct sorting by episode number
     sorted_files = sorted(files_list, key=lambda x: x[0])
+
+    print("📌 Sorted Order:", [ep[0] for ep in sorted_files])  # Debug print for order
 
     await event.reply("📤 Sending files in ascending order:")
     for episode_num, message in sorted_files:
