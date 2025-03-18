@@ -1,6 +1,6 @@
 import os
- import re
- from telethon import TelegramClient, events
+import asyncio
+from telethon import TelegramClient, events
  
  # Load API credentials from environment variables
  API_ID = int(os.getenv("API_ID"))
