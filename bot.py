@@ -1,18 +1,18 @@
 import os
 import re
-import asyncio  # ✅ Import asyncio for delay
+import asyncio
 from telethon import TelegramClient, events
 
 # Load API credentials from environment variables
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))  # Get from environment variables
+DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))
 
 client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# List to store files as tuples [(episode_number, message)]
-files_list = []
+# Queue to store files before sending them
+file_queue = asyncio.Queue()
 
 def extract_episode_number(text):
     """
@@ -25,43 +25,44 @@ def extract_episode_number(text):
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
-    if event.message.document:  # Ensure the message contains a document (file)
+    if event.message.document:
         file_caption = getattr(event.message, "message", None) or "Unknown"
 
-        # Get the file name safely
+        # Get file name safely
         file_name = "Unknown"
         for attr in event.message.document.attributes:
-            if hasattr(attr, "file_name"):  # Extract file name if available
+            if hasattr(attr, "file_name"):
                 file_name = attr.file_name
                 break  
 
         ordered_caption = f"{file_caption} | {file_name}"
-
-        # Extract correct episode number
         episode_number = extract_episode_number(file_name)
 
-        # Store the file message with its episode number
-        files_list.append((episode_number, event.message))
-
-        # Forward to destination channel with ordered caption
-        await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
-        print(f"✅ Forwarded: {ordered_caption}")
+        # Put file into queue
+        await file_queue.put((episode_number, event.message, ordered_caption))
+        print(f"📥 Queued: {ordered_caption}")
 
 @client.on(events.NewMessage(pattern="/getall"))
 async def send_files(event):
-    if not files_list:
+    if file_queue.empty():
         await event.reply("❌ No files stored.")
         return
 
-    # ✅ Ensure correct sorting by episode number
-    sorted_files = sorted(files_list, key=lambda x: x[0])
+    # Extract all queued files
+    queued_files = []
+    while not file_queue.empty():
+        queued_files.append(await file_queue.get())
 
-    print("📌 Sorted Order:", [ep[0] for ep in sorted_files])  # Debug print for order
+    # Sort files by episode number
+    sorted_files = sorted(queued_files, key=lambda x: x[0])
+    
+    print("📌 Sorted Order:", [ep[0] for ep in sorted_files])
 
-    await event.reply("📤 Sending files in ascending order:")
-    for episode_num, message in sorted_files:
-        await client.forward_messages(event.chat_id, message)  # Forward stored messages
-        await asyncio.sleep(2)  # ✅ Add 2-second delay between each file
+    await event.reply("📤 Sending files in order:")
+    for episode_num, message, caption in sorted_files:
+        await client.send_file(event.chat_id, message.document, caption=caption)
+        print(f"✅ Sent: {caption}")
+        await asyncio.sleep(3)  # ✅ Ensures delay between each file
 
 print("🤖 Bot is running...")
 client.run_until_disconnected()
