@@ -6,6 +6,7 @@ from telethon import TelegramClient, events
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))  # Get from environment variables
 
 client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
