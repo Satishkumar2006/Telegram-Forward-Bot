@@ -20,16 +20,16 @@ def extract_number(text):
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
-    file_caption = event.message.caption  # Get caption if it exists
+    file_caption = getattr(event.message, "text", None)  # Use text as caption fallback
     file_name = None
 
     if event.message.document and hasattr(event.message.document, "attributes"):
         for attr in event.message.document.attributes:
-            if hasattr(attr, "file_name"):  # Check if attribute has file_name
+            if hasattr(attr, "file_name"):  # Extract file name if available
                 file_name = attr.file_name
                 break
 
-    # Choose only one source for caption
+    # Use only one source for caption (avoid duplication)
     ordered_caption = file_caption if file_caption else file_name
 
     if not ordered_caption:
