@@ -1,5 +1,7 @@
 import os
 import re
+import asyncio
+from collections import deque
 from telethon import TelegramClient, events
 
 # Load API credentials from environment variables
@@ -10,8 +12,9 @@ DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))  # Get from environment va
 
 client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# Dictionary to store files {episode_number: message}
-files_dict = {}
+# Queue to store files before sending
+file_queue = deque()
+files_dict = {}  # Dictionary to store {episode_number: message}
 
 def extract_number(text):
     """ Extracts episode number from caption or filename. """
@@ -30,17 +33,28 @@ async def handle_files(event):
                 break
 
     # Use only one source for caption (avoid duplication)
-    ordered_caption = file_caption if file_caption else file_name
+    ordered_caption = file_caption if file_caption else file_name or "Unknown File"
+    
+    # Extract episode number
+    episode_number = extract_number(ordered_caption)
+    files_dict[episode_number] = event.message  # Store file in dictionary
 
-    if not ordered_caption:
-        ordered_caption = "Unknown File"
+    # Add file to queue
+    file_queue.append((episode_number, event.message.document, ordered_caption))
 
-    # Send file with corrected caption
-    await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
+    # Process the queue in order
+    await process_queue()
 
+async def process_queue():
+    global file_queue
 
+    # Sort queue before sending
+    file_queue = deque(sorted(file_queue, key=lambda x: x[0]))  # Sort by episode number
 
-
+    while file_queue:
+        episode_num, document, caption = file_queue.popleft()  # Get next file
+        await client.send_file(DESTINATION_CHAT, document, caption=caption)
+        await asyncio.sleep(1)  # Prevent flooding Telegram API
 
 @client.on(events.NewMessage(pattern="/getall"))
 async def send_files(event):
@@ -49,8 +63,8 @@ async def send_files(event):
         return
 
     sorted_files = sorted(files_dict.keys())  # Sort by episode number
-
     await event.reply("📤 Sending files in order:")
+
     for episode_num in sorted_files:
         await client.forward_messages(event.chat_id, files_dict[episode_num])
 
