@@ -1,42 +1,45 @@
 import os
-import asyncio
-from collections import defaultdict
+import re
 from telethon import TelegramClient, events
 
-# 🔹 Load API credentials from environment variables
+# Load API credentials from environment variables
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-SOURCE_CHAT = int(os.getenv("SOURCE_CHAT"))
-DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))
 
-# 🔹 Create Telegram bot client
 client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# 🔹 Dictionary to store files before forwarding
-file_storage = defaultdict(list)
+# Dictionary to store files {episode_number: message}
+files_dict = {}
 
-@client.on(events.NewMessage(chats=SOURCE_CHAT))
+def extract_number(text):
+    """ Extracts episode number from caption or filename. """
+    match = re.search(r'\d+', text)  # Find the first number in the text
+    return int(match.group()) if match else float('inf')  # Return number or inf if not found
+
+@client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
-    """Handles incoming files, sorts them, and forwards them in order."""
+    if event.file:  # Check if it's a file
+        file_caption = event.message.caption or event.file.name or "Unknown"
+        episode_num = extract_number(file_caption)
 
-    # 🔹 Extract file name or caption
-    file_caption = event.message.text or (event.message.document and event.message.document.attributes[0].file_name)
-    if not file_caption:
-        return  # Ignore messages without captions or filenames
+        if episode_num != float('inf'):  # Only store if a number is found
+            files_dict[episode_num] = event.message
+            await event.reply(f"📂 Saved: {file_caption} (Episode {episode_num})")
+        else:
+            await event.reply("❌ Could not detect an episode number.")
 
-    # 🔹 Store file with extracted name
-    file_storage[SOURCE_CHAT].append((file_caption, event.message))
+@client.on(events.NewMessage(pattern="/getall"))
+async def send_files(event):
+    if not files_dict:
+        await event.reply("❌ No files stored.")
+        return
 
-    # 🔹 Sort files in ascending order based on filename
-    file_storage[SOURCE_CHAT].sort(key=lambda x: x[0])
+    sorted_files = sorted(files_dict.keys())  # Sort by episode number
 
-    # 🔹 Forward files in order
-    for _, msg in file_storage[SOURCE_CHAT]:
-        await client.send_message(DESTINATION_CHAT, file=msg.document, caption=msg.text)
-    
-    # 🔹 Clear the storage after forwarding
-    file_storage[SOURCE_CHAT].clear()
+    await event.reply("📤 Sending files in order:")
+    for episode_num in sorted_files:
+        await client.forward_messages(event.chat_id, files_dict[episode_num])
 
 print("🤖 Bot is running...")
 client.run_until_disconnected()
