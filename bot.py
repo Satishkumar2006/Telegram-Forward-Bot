@@ -1,5 +1,6 @@
 import os
 import re
+import asyncio  # ✅ Import asyncio for delay
 from telethon import TelegramClient, events
 
 # Load API credentials from environment variables
@@ -60,6 +61,7 @@ async def send_files(event):
     await event.reply("📤 Sending files in ascending order:")
     for episode_num, message in sorted_files:
         await client.forward_messages(event.chat_id, message)  # Forward stored messages
+        await asyncio.sleep(2)  # ✅ Add 2-second delay between each file
 
 print("🤖 Bot is running...")
 client.run_until_disconnected()
