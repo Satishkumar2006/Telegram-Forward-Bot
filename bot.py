@@ -6,6 +6,7 @@ import os
  API_ID = int(os.getenv("API_ID"))
  API_HASH = os.getenv("API_HASH")
  BOT_TOKEN = os.getenv("BOT_TOKEN")
+ DESTINATION_CHAT = int(os.getenv("DESTINATION_CHAT"))  # Get from environment variables
  
  client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
  
@@ -19,21 +20,30 @@ import os
  
  @client.on(events.NewMessage(incoming=True))
  async def handle_files(event):
-     if event.message.document:  # Check if message contains a file
      if event.message.document:  # Ensure the message contains a document (file)
          file_caption = getattr(event.message, "message", None) or "Unknown"
-         file_name = event.message.document.attributes[0].file_name if event.message.document.attributes else "Unknown"
-         
+     file_caption = event.message.caption  # Get caption if it exists
+     file_name = None
  
          # Get the file name safely
          file_name = "Unknown"
+     if event.message.document and hasattr(event.message.document, "attributes"):
          for attr in event.message.document.attributes:
              if hasattr(attr, "file_name"):  # Only pick attributes that have file_name
+             if hasattr(attr, "file_name"):  # Check if attribute has file_name
                  file_name = attr.file_name
                  break  # Stop when we find the file name
+                 break
  
          ordered_caption = f"{file_caption} | {file_name}"
-         
+     # Choose only one source for caption
+     ordered_caption = file_caption if file_caption else file_name
+ 
+     if not ordered_caption:
+         ordered_caption = "Unknown File"
+ 
+     # Send file with corrected caption
+     await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
  
          # Forward to destination channel with ordered caption
          await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
