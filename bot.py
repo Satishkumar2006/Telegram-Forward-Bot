@@ -15,13 +15,9 @@ client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOK
 file_queue = asyncio.Queue()
 
 def extract_episode_number(text):
-    """
-    Extracts episode number from filenames like:
-    'Kingdom - S01E12 - The Ultimate Sword-Blow [MCR] [75CA4A20].mkv'
-    Only extracts '12' from 'S01E12'.
-    """
-    match = re.search(r'S\d+E(\d+)', text)  # Find 'S01E12' and extract '12'
-    return int(match.group(1)) if match else float('inf')  # Default to a high number if not found
+    """ Extracts episode number from filenames like 'S01E12' and returns 12 """
+    match = re.search(r'S\d+E(\d+)', text)
+    return int(match.group(1)) if match else float('inf')
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
@@ -46,7 +42,6 @@ async def process_queue():
     """ Continuously processes files from the queue in sorted order. """
     while True:
         if not file_queue.empty():
-            # Extract all queued files
             queued_files = []
             while not file_queue.empty():
                 queued_files.append(await file_queue.get())
@@ -62,11 +57,10 @@ async def process_queue():
 
         await asyncio.sleep(1)  # ✅ Prevents high CPU usage
 
-# Start queue processing in the background
 async def main():
-    await client.start()
-    client.loop.create_task(process_queue())  # Start queue worker
+    client.loop.create_task(process_queue())  # ✅ Start queue processor
     print("🤖 Bot is running...")
     await client.run_until_disconnected()
 
-asyncio.run(main())
+# ✅ Corrected way to start the event loop
+client.loop.run_until_complete(main())
