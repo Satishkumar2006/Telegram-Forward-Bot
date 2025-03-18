@@ -31,7 +31,8 @@ async def handle_files(event):
                 file_name = attr.file_name
                 break  
 
-        ordered_caption = f"{file_caption} | {file_name}"
+        # ✅ Fix: Only use the file name as the caption
+        ordered_caption = f"{file_name}"
         episode_number = extract_episode_number(file_name)
 
         # Put file into queue
