@@ -14,7 +14,7 @@ client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOK
 files_dict = {}
 
 def extract_number(text):
-    """ Extracts episode number from caption or filename. """
+    """Extracts episode number from caption or filename."""
     match = re.search(r'\d+', text)  # Find the first number in the text
     return int(match.group()) if match else float('inf')  # Return number or inf if not found
 
@@ -32,6 +32,10 @@ async def handle_files(event):
 
         ordered_caption = f"{file_caption} | {file_name}"
 
+        # Extract episode number and store the file
+        episode_number = extract_number(file_name)  # Extract episode number
+        files_dict[episode_number] = event.message  # Store message in dictionary
+
         # Forward to destination channel with ordered caption
         await client.send_file(DESTINATION_CHAT, event.message.document, caption=ordered_caption)
         print(f"✅ Forwarded: {ordered_caption}")
@@ -46,7 +50,7 @@ async def send_files(event):
 
     await event.reply("📤 Sending files in order:")
     for episode_num in sorted_files:
-        await client.forward_messages(event.chat_id, files_dict[episode_num])
+        await client.forward_messages(event.chat_id, files_dict[episode_num])  # Forward stored messages
 
 print("🤖 Bot is running...")
 client.run_until_disconnected()
