@@ -13,10 +13,13 @@ client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOK
 # List to store files as tuples [(episode_number, message)]
 files_list = []
 
-def extract_number(text):
-    """Extracts episode number from caption or filename."""
-    match = re.search(r'\d+', text)  # Find the first number in the text
-    return int(match.group()) if match else float('inf')  # Return number or inf if not found
+def extract_episode_number(text):
+    """
+    Extracts episode number from filenames like:
+    'Kingdom - S01E12 - The Ultimate Sword-Blow [MCR] [75CA4A20].mkv'
+    """
+    match = re.search(r'S\d+E(\d+)', text)  # Find 'S01E12' and extract '12'
+    return int(match.group(1)) if match else float('inf')  # Convert to int or return infinity if not found
 
 @client.on(events.NewMessage(incoming=True))
 async def handle_files(event):
@@ -26,14 +29,14 @@ async def handle_files(event):
         # Get the file name safely
         file_name = "Unknown"
         for attr in event.message.document.attributes:
-            if hasattr(attr, "file_name"):  # Only pick attributes that have file_name
+            if hasattr(attr, "file_name"):  # Extract file name if available
                 file_name = attr.file_name
-                break  # Stop when we find the file name
+                break  
 
         ordered_caption = f"{file_caption} | {file_name}"
 
-        # Extract episode number
-        episode_number = extract_number(file_name)
+        # Extract correct episode number
+        episode_number = extract_episode_number(file_name)
 
         # Store the file message with its episode number
         files_list.append((episode_number, event.message))
@@ -48,7 +51,7 @@ async def send_files(event):
         await event.reply("❌ No files stored.")
         return
 
-    # Sort files by episode number
+    # ✅ Ensure correct sorting by episode number
     sorted_files = sorted(files_list, key=lambda x: x[0])
 
     await event.reply("📤 Sending files in ascending order:")
