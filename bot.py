@@ -2,7 +2,7 @@ import os
 import re
 from telethon import TelegramClient, events
  
- # Load API credentials from environment variables
+# Load API credentials from environment variables
  API_ID = int(os.getenv("API_ID"))
  API_HASH = os.getenv("API_HASH")
  BOT_TOKEN = os.getenv("BOT_TOKEN")
