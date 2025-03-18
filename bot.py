@@ -42,27 +42,31 @@ async def handle_files(event):
         await file_queue.put((episode_number, event.message, ordered_caption))
         print(f"📥 Queued: {ordered_caption}")
 
-@client.on(events.NewMessage(pattern="/getall"))
-async def send_files(event):
-    if file_queue.empty():
-        await event.reply("❌ No files stored.")
-        return
+async def process_queue():
+    """ Continuously processes files from the queue in sorted order. """
+    while True:
+        if not file_queue.empty():
+            # Extract all queued files
+            queued_files = []
+            while not file_queue.empty():
+                queued_files.append(await file_queue.get())
 
-    # Extract all queued files
-    queued_files = []
-    while not file_queue.empty():
-        queued_files.append(await file_queue.get())
+            # Sort files by episode number
+            sorted_files = sorted(queued_files, key=lambda x: x[0])
+            print("📌 Sorted Order:", [ep[0] for ep in sorted_files])
 
-    # Sort files by episode number
-    sorted_files = sorted(queued_files, key=lambda x: x[0])
-    
-    print("📌 Sorted Order:", [ep[0] for ep in sorted_files])
+            for episode_num, message, caption in sorted_files:
+                await client.send_file(DESTINATION_CHAT, message.document, caption=caption)
+                print(f"✅ Sent: {caption}")
+                await asyncio.sleep(3)  # ✅ Delay between sending files
 
-    await event.reply("📤 Sending files in order:")
-    for episode_num, message, caption in sorted_files:
-        await client.send_file(event.chat_id, message.document, caption=caption)
-        print(f"✅ Sent: {caption}")
-        await asyncio.sleep(3)  # ✅ Ensures delay between each file
+        await asyncio.sleep(1)  # ✅ Prevents high CPU usage
 
-print("🤖 Bot is running...")
-client.run_until_disconnected()
+# Start queue processing in the background
+async def main():
+    await client.start()
+    client.loop.create_task(process_queue())  # Start queue worker
+    print("🤖 Bot is running...")
+    await client.run_until_disconnected()
+
+asyncio.run(main())
